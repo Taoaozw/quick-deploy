@@ -13,13 +13,16 @@ type CommandType string
 const (
 	CommandTypeLocal  CommandType = "local"
 	CommandTypeRemote CommandType = "remote"
+	CommandTypeScp    CommandType = "scp"
 )
 
 // Command represents a command to be executed
 type Command struct {
 	Type       CommandType `yaml:"type"`
-	Command    string      `yaml:"command"`
+	Command    string      `yaml:"command,omitempty"`
 	WorkingDir string      `yaml:"working_dir,omitempty"`
+	LocalPath  string      `yaml:"local_path,omitempty"`
+	RemotePath string      `yaml:"remote_path,omitempty"`
 }
 
 // Pipeline represents a deployment pipeline

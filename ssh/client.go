@@ -45,17 +45,15 @@ func (c *Client) ExecuteCommand(command string, output io.Writer) error {
 	session.Stdout = output
 	session.Stderr = output
 
-	if err := session.Run(command); err != nil {
-		return fmt.Errorf("failed to run command: %v", err)
-	}
+	return session.Run(command)
+}
 
-	return nil
+// NewSession creates a new SSH session
+func (c *Client) NewSession() (*ssh.Session, error) {
+	return c.client.NewSession()
 }
 
 // Close closes the SSH connection
 func (c *Client) Close() error {
-	if c.client != nil {
-		return c.client.Close()
-	}
-	return nil
+	return c.client.Close()
 }

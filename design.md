@@ -13,6 +13,7 @@ Quick Deploy 是一个用 Go 语言编写的命令行工具，用于将应用程
 2. 命令执行
    - 支持指定工作目录的本地命令执行
    - 通过 SSH 执行远程命令
+   - 支持 SCP 文件传输，可指定本地和远程路径
    - 实时显示命令输出
    - 命令执行状态检查
 
@@ -34,6 +35,7 @@ Quick Deploy 是一个用 Go 语言编写的命令行工具，用于将应用程
 2. **SSH 包**
    - SSH 客户端实现
    - 远程命令执行
+   - SCP 文件传输功能
    - 安全凭证处理
 
 3. **Executor 包**
@@ -51,13 +53,16 @@ type CommandType string
 const (
     CommandTypeLocal  CommandType = "local"
     CommandTypeRemote CommandType = "remote"
+    CommandTypeScp    CommandType = "scp"
 )
 
 // 命令配置
 type Command struct {
     Type       CommandType `yaml:"type"`
-    Command    string      `yaml:"command"`
+    Command    string      `yaml:"command,omitempty"`
     WorkingDir string      `yaml:"working_dir,omitempty"`
+    LocalPath  string      `yaml:"local_path,omitempty"`
+    RemotePath string      `yaml:"remote_path,omitempty"`
 }
 
 // 部署流程
@@ -103,6 +108,7 @@ type Config struct {
 2. **阶段2: 命令执行**
    - 实现本地命令执行器
    - 实现 SSH 客户端和远程执行
+   - 实现 SCP 文件传输功能
    - 添加工作目录支持
    - 实现命令执行状态检查
 

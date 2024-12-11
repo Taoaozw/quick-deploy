@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"quick-deploy/config"
@@ -128,6 +129,8 @@ func (e *Executor) ExecutePipeline(pipeline *config.Pipeline) error {
 			err = e.ExecuteLocal(&cmd)
 		case config.CommandTypeRemote:
 			err = e.ExecuteRemote(&cmd)
+		case config.CommandTypeScp:
+			err = e.executeScpCommand(cmd.LocalPath, cmd.RemotePath)
 		default:
 			return fmt.Errorf("unknown command type: %s", cmd.Type)
 		}
@@ -141,6 +144,59 @@ func (e *Executor) ExecutePipeline(pipeline *config.Pipeline) error {
 
 	fmt.Fprintf(e.output, "\n==> Deployment completed successfully in %.2f seconds\n", 
 		time.Since(startTime).Seconds())
+	return nil
+}
+
+// executeScpCommand 执行 SCP 文件传输
+func (e *Executor) executeScpCommand(localPath, remotePath string) error {
+	fmt.Fprintf(e.output, "Copying file from %s to %s...\n", localPath, remotePath)
+	
+	// 检查本地文件是否存在
+	localFile, err := os.Open(localPath)
+	if err != nil {
+		return fmt.Errorf("failed to open local file: %v", err)
+	}
+	defer localFile.Close()
+
+	// 获取文件信息
+	fileInfo, err := localFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %v", err)
+	}
+
+	// 确保远程路径存在
+	remoteDir := filepath.Dir(remotePath)
+	mkdirCmd := fmt.Sprintf("mkdir -p %s", remoteDir)
+	if err := e.ExecuteRemote(&config.Command{Command: mkdirCmd}); err != nil {
+		return fmt.Errorf("failed to create remote directory: %v", err)
+	}
+
+	// 创建 SCP 会话
+	session, err := e.ssh.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create session: %v", err)
+	}
+	defer session.Close()
+
+	// 设置输出
+	session.Stdout = e.output
+	session.Stderr = e.output
+
+	// 通过 SCP 传输文件
+	go func() {
+		w, _ := session.StdinPipe()
+		defer w.Close()
+		
+		fmt.Fprintf(w, "C%#o %d %s\n", fileInfo.Mode().Perm(), fileInfo.Size(), filepath.Base(remotePath))
+		io.Copy(w, localFile)
+		fmt.Fprint(w, "\x00")
+	}()
+
+	if err := session.Run(fmt.Sprintf("scp -t %s", remotePath)); err != nil {
+		return fmt.Errorf("scp failed: %v", err)
+	}
+
+	fmt.Fprintf(e.output, "Successfully copied file to %s\n", remotePath)
 	return nil
 }
 

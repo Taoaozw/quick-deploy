@@ -34,8 +34,9 @@ deployments:
         - type: local
           command: "go build"                   # 本地编译
           working_dir: "./service1"
-        - type: remote
-          command: "scp ./service1 server:/tmp" # 上传新版本
+        - type: scp                            # 新增 scp 类型
+          local_path: "./service1/service1"     # 本地文件路径
+          remote_path: "/opt/services/"         # 远程目标路径
         - type: remote
           command: "systemctl start service1"   # 启动服务
   

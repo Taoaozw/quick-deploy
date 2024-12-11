@@ -6,7 +6,8 @@ Quick Deploy 是一个用 Go 语言编写的命令行工具，用于将应用程
 ## 核心功能
 1. YAML 配置解析
    - 解析服务器配置（主机、端口、凭证）
-   - 解析部署流程（本地和远程命令）
+   - 解析部署内容定义（命令序列）
+   - 解析部署计划（哪些服务器执行哪些部署）
    - 支持多服务器和多部署配置
 
 2. 命令执行
@@ -73,10 +74,16 @@ type Server struct {
     Password string `yaml:"password"`
 }
 
-// 部署配置
-type Deployment struct {
-    Name string   `yaml:"name"`
-    Pipe Pipeline `yaml:"pipe"`
+// 部署内容定义
+type DeploymentDefinition struct {
+    Name     string   `yaml:"name"`
+    Pipeline Pipeline `yaml:"pipeline"`
+}
+
+// 部署计划
+type DeploymentPlan struct {
+    ServerName      string `yaml:"server"`
+    DeploymentName  string `yaml:"deployment"`
 }
 
 // 完整配置

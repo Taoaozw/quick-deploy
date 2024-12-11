@@ -24,18 +24,27 @@
         servers:
             - name: server1
             pipe:
-                local_commands:
-                    - command: "go build"
-                    working_dir: "./service1"
-                remote_commands:
-                    - command: "systemctl stop service1"
-                    - command: "cp /tmp/service1 /usr/local/bin/"
+                commands:
+                    - type: remote
+                        command: "systemctl stop service1"    # 先停止远程服务
+                    - type: local
+                        command: "go build"                   # 本地编译
+                        working_dir: "./service1"
+                    - type: remote
+                        command: "scp ./service1 server:/tmp" # 上传新版本
+                    - type: remote
+                        command: "systemctl start service1"   # 启动服务
             - name: server2
-              pipe:
-                local_commands:
-                    - command: "go build"
-                    working_dir: "./service1"
-                remote_commands:
-                    - command: "systemctl stop service1"
-                    - command: "cp /tmp/service1 /usr/local/bin/"
+            pipe:
+                commands:
+                    - type: remote
+                        command: "systemctl stop service1"    # 先停止远程服务
+                    - type: local
+                        command: "go build"                   # 本地编译
+                        working_dir: "./service1"
+                    - type: remote
+                        command: "scp ./service1 server:/tmp" # 上传新版本
+                    - type: remote
+                        command: "systemctl start service1"   # 启动服务              
+
     ```

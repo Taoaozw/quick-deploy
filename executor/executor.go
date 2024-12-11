@@ -66,17 +66,19 @@ func (e *Executor) ExecuteRemote(cmd *config.Command) error {
 
 // ExecutePipeline executes a complete deployment pipeline
 func (e *Executor) ExecutePipeline(pipeline *config.Pipeline) error {
-	// Execute local commands
-	for _, cmd := range pipeline.LocalCommands {
-		if err := e.ExecuteLocal(&cmd); err != nil {
-			return err
+	for _, cmd := range pipeline.Commands {
+		var err error
+		switch cmd.Type {
+		case config.CommandTypeLocal:
+			err = e.ExecuteLocal(&cmd)
+		case config.CommandTypeRemote:
+			err = e.ExecuteRemote(&cmd)
+		default:
+			return fmt.Errorf("unknown command type: %s", cmd.Type)
 		}
-	}
 
-	// Execute remote commands
-	for _, cmd := range pipeline.RemoteCommands {
-		if err := e.ExecuteRemote(&cmd); err != nil {
-			return err
+		if err != nil {
+			return fmt.Errorf("pipeline execution failed: %v", err)
 		}
 	}
 

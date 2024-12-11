@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"quick-deploy/config"
 	"quick-deploy/ssh"
+	"strings"
 )
 
 // Executor handles command execution both locally and remotely
@@ -30,6 +31,15 @@ func NewExecutor(server *config.Server, output io.Writer) (*Executor, error) {
 	}, nil
 }
 
+// shouldIgnoreError checks if the error from a command should be ignored
+func shouldIgnoreError(cmd string, err error) bool {
+	// 忽略kill命令的错误
+	if strings.Contains(cmd, "kill") || strings.Contains(cmd, "pkill") {
+		return true
+	}
+	return false
+}
+
 // ExecuteLocal executes a local command
 func (e *Executor) ExecuteLocal(cmd *config.Command) error {
 	fmt.Fprintf(e.output, "Executing local command: %s\n", cmd.Command)
@@ -46,7 +56,8 @@ func (e *Executor) ExecuteLocal(cmd *config.Command) error {
 	command.Stdout = e.output
 	command.Stderr = e.output
 
-	if err := command.Run(); err != nil {
+	err := command.Run()
+	if err != nil && !shouldIgnoreError(cmd.Command, err) {
 		return fmt.Errorf("local command failed: %v", err)
 	}
 
@@ -57,7 +68,8 @@ func (e *Executor) ExecuteLocal(cmd *config.Command) error {
 func (e *Executor) ExecuteRemote(cmd *config.Command) error {
 	fmt.Fprintf(e.output, "Executing remote command on %s: %s\n", e.server.Name, cmd.Command)
 
-	if err := e.ssh.ExecuteCommand(cmd.Command, e.output); err != nil {
+	err := e.ssh.ExecuteCommand(cmd.Command, e.output)
+	if err != nil && !shouldIgnoreError(cmd.Command, err) {
 		return fmt.Errorf("remote command failed: %v", err)
 	}
 

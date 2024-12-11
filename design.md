@@ -1,61 +1,70 @@
-# Quick Deploy - Design Document
+# Quick Deploy - 设计文档
 
-## Overview
-Quick Deploy is a command-line tool written in Go that facilitates deploying applications to multiple servers. It reads a `deploy.yaml` configuration file that specifies server details and deployment commands, then executes them in sequence while providing user-friendly output.
+## 概述
+Quick Deploy 是一个用 Go 语言编写的命令行工具，用于将应用程序部署到多个服务器。它通过读取 `deploy.yaml` 配置文件来获取服务器详情和部署命令，然后按顺序执行这些命令，同时提供友好的输出信息。
 
-## Core Features
-1. YAML Configuration Parsing
-   - Parse server configurations (host, port, credentials)
-   - Parse deployment pipelines (local and remote commands)
-   - Support for multiple servers and deployments
+## 核心功能
+1. YAML 配置解析
+   - 解析服务器配置（主机、端口、凭证）
+   - 解析部署流程（本地和远程命令）
+   - 支持多服务器和多部署配置
 
-2. Command Execution
-   - Local command execution with working directory support
-   - Remote command execution via SSH
-   - Real-time command output display
-   - Health check command execution and validation
+2. 命令执行
+   - 支持指定工作目录的本地命令执行
+   - 通过 SSH 执行远程命令
+   - 实时显示命令输出
+   - 命令执行状态检查
 
-3. User Interface
-   - Clear, formatted console output
-   - Progress indication for each step
-   - Error handling and reporting
+3. 用户界面
+   - 清晰、格式化的控制台输出
+   - 每个步骤的进度提示
+   - 错误处理和报告
 
-## Technical Architecture
+## 技术架构
 
-### Components
+### 组件
 
-1. **Config Package**
-   - `Config`: Main configuration struct
-   - `Server`: Server configuration struct
-   - `Deployment`: Deployment configuration struct
-   - YAML parsing functionality
+1. **Config 包**
+   - `Config`: 主配置结构
+   - `Server`: 服务器配置结构
+   - `Command`: 命令配置结构
+   - YAML 解析功能
 
-2. **SSH Package**
-   - SSH client implementation
-   - Remote command execution
-   - Secure credential handling
+2. **SSH 包**
+   - SSH 客户端实现
+   - 远程命令执行
+   - 安全凭证处理
 
-3. **Executor Package**
-   - Local command execution
-   - Remote command execution via SSH
-   - Command output handling
-   - Health check implementation
+3. **Executor 包**
+   - 本地命令执行
+   - 通过 SSH 执行远程命令
+   - 命令输出处理
+   - 执行状态检查
 
-4. **Logger Package**
-   - Formatted output handling
-   - Progress indication
-   - Error reporting
-
-### Data Structures
+### 数据结构
 
 ```go
-// Main configuration structure
-type Config struct {
-    Servers     []Server     `yaml:"servers"`
-    Deployments Deployments  `yaml:"deployments"`
+// 命令类型
+type CommandType string
+
+const (
+    CommandTypeLocal  CommandType = "local"
+    CommandTypeRemote CommandType = "remote"
+)
+
+// 命令配置
+type Command struct {
+    Type       CommandType `yaml:"type"`
+    Command    string      `yaml:"command"`
+    WorkingDir string      `yaml:"working_dir,omitempty"`
 }
 
-// Server configuration
+// 部署流程
+type Pipeline struct {
+    Commands []Command `yaml:"commands"`
+}
+
+// 服务器配置
 type Server struct {
     Name     string `yaml:"name"`
     Host     string `yaml:"host"`
@@ -64,70 +73,60 @@ type Server struct {
     Password string `yaml:"password"`
 }
 
-// Deployment configuration
-type Deployments struct {
-    Servers []DeploymentServer `yaml:"servers"`
-}
-
-// Deployment server configuration
-type DeploymentServer struct {
-    Name string `yaml:"name"`
+// 部署配置
+type Deployment struct {
+    Name string   `yaml:"name"`
     Pipe Pipeline `yaml:"pipe"`
 }
 
-// Pipeline configuration
-type Pipeline struct {
-    LocalCommands  []Command `yaml:"local_commands"`
-    RemoteCommands []Command `yaml:"remote_commands"`
-}
-
-// Command configuration
-type Command struct {
-    Command     string `yaml:"command"`
-    WorkingDir  string `yaml:"working_dir,omitempty"`
+// 完整配置
+type Config struct {
+    Servers     []Server         `yaml:"servers"`
+    Deployments DeploymentConfig `yaml:"deployments"`
 }
 ```
 
-## Implementation Plan
+## 实现计划
 
-1. **Phase 1: Configuration Management**
-   - Implement YAML configuration parsing
-   - Add configuration validation
-   - Create configuration loading functionality
+1. **阶段1: 配置管理**
+   - 实现 YAML 配置解析
+   - 添加配置验证
+   - 创建配置加载功能
 
-2. **Phase 2: Command Execution**
-   - Implement local command executor
-   - Implement SSH client and remote execution
-   - Add working directory support
-   - Implement health check functionality
+2. **阶段2: 命令执行**
+   - 实现本地命令执行器
+   - 实现 SSH 客户端和远程执行
+   - 添加工作目录支持
+   - 实现命令执行状态检查
 
-3. **Phase 3: User Interface**
-   - Implement formatted output
-   - Add progress indication
-   - Implement error handling and reporting
+3. **阶段3: 用户界面**
+   - 实现格式化输出
+   - 添加进度提示
+   - 实现错误处理和报告
 
-4. **Phase 4: Testing and Documentation**
-   - Unit tests for all components
-   - Integration tests
-   - Documentation and usage examples
+4. **阶段4: 测试和文档**
+   - 所有组件的单元测试
+   - 集成测试
+   - 文档和使用示例
 
-## Error Handling
-- Configuration validation errors
-- SSH connection errors
-- Command execution errors
-- Health check failures
+## 错误处理
+- 配置验证错误
+- SSH 连接错误
+- 命令执行错误
+- 状态检查失败
+- 特定命令错误忽略（如 kill 命令）
 
-## Security Considerations
-- Secure password handling
-- SSH key support (future enhancement)
-- Command injection prevention
-- Logging sensitive information handling
+## 安全考虑
+- 安全的密码处理
+- SSH 密钥支持（未来增强）
+- 命令注入防护
+- 敏感信息日志处理
 
-## Future Enhancements
-1. SSH key authentication support
-2. Parallel deployment execution
-3. Rollback functionality
-4. Deployment history and logging
-5. Interactive mode for deployment confirmation
-6. Support for environment variables
-7. Timeout configurations for commands
+## 未来增强
+1. SSH 密钥认证支持
+2. 并行部署执行
+3. 回滚功能
+4. 部署历史和日志
+5. 部署确认的交互模式
+6. 环境变量支持
+7. 命令超时配置

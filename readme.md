@@ -1,50 +1,74 @@
-## 系统
-1. 使用golang开发，充分使用golang的特性
-2. 是一个命令行工具,帮助部署程序到多个服务器
-    - 解析当前文件夹的 deploy.yaml文件，包括多个服务器地址，用户名，密码，需要本地执行的命令和远程执行的命令 还有检测执行结果的命令，比如pgrep -f "image*" 看对应的进程是否存在
-    - 执行命令，同时能够看到执行命令的过程和输出，包括本地执行的命令，远程执行的命令，检测执行结果的命令，打印的格式要求阅读友好
-3. 先给出一个设计文档，使用md格式，再实现
-4. 实现的时候需要完整的注释
-5. 以下是配置文件格式
-    ```yaml
-    servers:
-    - name: server1
+# Quick Deploy
+
+## 系统说明
+1. 使用 golang 开发，充分利用 golang 的特性
+2. 这是一个命令行工具，用于帮助将程序部署到多个服务器
+3. 主要功能：
+   - 解析当前文件夹的 `deploy.yaml` 配置文件
+   - 支持多服务器配置
+   - 支持本地和远程命令的交错执行
+   - 提供友好的命令执行输出格式
+
+## 配置文件格式
+```yaml
+# 服务器配置
+servers:
+  - name: server1
     host: 192.168.1.100
     port: 22
     username: admin
     password: password123
-    servers:
-    - name: server2
-    host: 192.168.1.100
+  - name: server2
+    host: 192.168.1.101
     port: 22
     username: admin
-    password: password123 
-    
-    deployments:
-        servers:
-            - name: server1
-            pipe:
-                commands:
-                    - type: remote
-                        command: "systemctl stop service1"    # 先停止远程服务
-                    - type: local
-                        command: "go build"                   # 本地编译
-                        working_dir: "./service1"
-                    - type: remote
-                        command: "scp ./service1 server:/tmp" # 上传新版本
-                    - type: remote
-                        command: "systemctl start service1"   # 启动服务
-            - name: server2
-            pipe:
-                commands:
-                    - type: remote
-                        command: "systemctl stop service1"    # 先停止远程服务
-                    - type: local
-                        command: "go build"                   # 本地编译
-                        working_dir: "./service1"
-                    - type: remote
-                        command: "scp ./service1 server:/tmp" # 上传新版本
-                    - type: remote
-                        command: "systemctl start service1"   # 启动服务              
+    password: password123
 
-    ```
+# 部署配置
+deployments:
+  servers:
+    - name: server1
+      pipe:
+        commands:
+          - type: remote
+            command: "systemctl stop service1"    # 先停止远程服务
+          - type: local
+            command: "go build"                   # 本地编译
+            working_dir: "./service1"
+          - type: remote
+            command: "scp ./service1 server:/tmp" # 上传新版本
+          - type: remote
+            command: "systemctl start service1"   # 启动服务
+    - name: server2
+      pipe:
+        commands:
+          - type: remote
+            command: "kill -9 $(ps aux | grep image | awk '{print $2}' | head -n 1)"
+          - type: local
+            command: "go build"
+            working_dir: "./service2"
+          - type: remote
+            command: "scp ./service2 server:/tmp"
+          - type: remote
+            command: "cd /tmp && ./service2"
+```
+
+## 特性
+1. 支持本地和远程命令交错执行
+2. 支持指定本地命令的工作目录
+3. 自动忽略特定命令的错误（如 kill 命令）
+4. 实时显示命令执行输出
+5. 友好的错误处理和提示
+
+## 使用方法
+1. 准备配置文件 `deploy.yaml`
+2. 运行命令：
+   ```bash
+   quick-deploy -config deploy.yaml
+   ```
+
+## 注意事项
+1. 确保本地环境能够访问目标服务器
+2. 确保配置文件中的服务器信息正确
+3. 建议使用 SSH 密钥认证（未来支持）
+4. 注意保护配置文件中的敏感信息

@@ -44,13 +44,15 @@ func main() {
 
 	// Create maps for quick lookup
 	serverMap := make(map[string]*config.Server)
-	for _, server := range cfg.Servers {
-		serverMap[server.Name] = &server
+	for i := range cfg.Servers {
+		server := &cfg.Servers[i]
+		serverMap[server.Name] = server
 	}
 
 	deploymentMap := make(map[string]*config.DeploymentDefinition)
-	for _, deployment := range cfg.Deployments {
-		deploymentMap[deployment.Name] = &deployment
+	for i := range cfg.Deployments {
+		deployment := &cfg.Deployments[i]
+		deploymentMap[deployment.Name] = deployment
 	}
 
 	// Track overall success
